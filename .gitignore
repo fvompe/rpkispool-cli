@@ -1,0 +1,7 @@
+misc
+*.mypy_cache
+*.pytest_cache
+*.egg-info
+.venv
+work
+__pycache__

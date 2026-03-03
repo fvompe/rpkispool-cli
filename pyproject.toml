@@ -1,0 +1,22 @@
+[project]
+name = "rpkispool-cli"
+version = "0.1.0"
+description = "RPKISpool CLI tool"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+rpkispool-cli = "rpkispool.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest"
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 160
