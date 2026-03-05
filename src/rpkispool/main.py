@@ -1,12 +1,13 @@
 import argparse
 import importlib
+import logging
+import os
 import re
 import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Dict, List
-import logging
 
 logger = logging.getLogger("rpkispool.cli")
 
@@ -22,7 +23,11 @@ class RPKIDate:
         """
         Return the default date (yesterday) as an RPKIDate instance.
         """
-        return cls.parse((date.today() - timedelta(days=1)).strftime("%Y%m%d"))    
+        env_date = os.environ.get("RPKISPOOL_DATE")
+        if env_date:
+            return cls.parse(env_date)
+
+        return cls.parse((date.today() - timedelta(days=1)).strftime("%Y%m%d"))
 
     @classmethod
     def parse(cls, value: str) -> "RPKIDate":
@@ -34,10 +39,14 @@ class RPKIDate:
     def __str__(self) -> str:
         return f"{self.year}{self.month}{self.day}"
 
+
 # add new cli modules here
 CLI_MODULES = [
     "rpkispool.cli.download",
+    "rpkispool.cli.verify",
+    "rpkispool.cli.summary",
 ]
+
 
 def _load_modules() -> Dict[str, Any]:
     """
@@ -53,6 +62,7 @@ def _load_modules() -> Dict[str, Any]:
             sys.exit(1)
 
     return modules
+
 
 def main(argv: List[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rpkispool-cli", description="RPKISpool CLI tool")
