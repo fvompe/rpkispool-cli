@@ -104,6 +104,8 @@ def cmd_repositories(args: Any) -> None:
 def add_parser(subparsers: Any) -> None:
     summary = subparsers.add_parser("summary", help="Summarise initstate archive coverage")
     sub = summary.add_subparsers(dest="summary_command")
+    sub.required = True
+
     sub.add_parser("vantage-points", help="Per-vantage-point object and repo counts")
     sub.add_parser("repositories", help="Per-repository coverage matrix across vantage points")
 
