@@ -65,7 +65,7 @@ options:
 Example:
 
 ```bash
-rpkispool-cli --output-dir download --date 20260202 download --filelists
+$ rpkispool-cli --output-dir download --date 20260202 download --filelists
 ```
 
 Note, that generating filelists is needed to operate with other commands, e.g. `verify` and `summary`.
@@ -73,7 +73,7 @@ Note, that generating filelists is needed to operate with other commands, e.g. `
 On commodity hardware, generating filelist for a single archive takes around 15 minutes. 
 
 ```bash
-rpkispool-cli download --filelists
+$ rpkispool-cli download --filelists
 2026-03-05 17:51:33,469 INFO: File already exists, skipping download: work/archives/20260302-initstate.tar.zst
 2026-03-05 17:51:33,470 INFO: Generating filelist for work/archives/20260302-initstate.tar.zst
 2026-03-05 17:56:26,081 INFO: Filelist generated: work/archives/20260302-initstate.tar.zst.filelist.gz
@@ -99,7 +99,7 @@ options:
 Example:
 
 ```bash
-uv run rpkispool-cli verify
+$ rpkispool-cli verify
 2026-03-05 18:07:26,999 INFO: Verifying work/archives/20260302-initstate.tar.zst.filelist.gz
 OK  20260302-initstate.tar.zst.filelist.gz  (6029082 entries checked)
 2026-03-05 18:07:37,029 INFO: Verifying work/archives/20260302-rpkispool.tar.zst.filelist.gz
@@ -121,7 +121,7 @@ options:
   -h, --help            show this help message and exit
 ```
 
-```
+```bash
 $ rpkispool-cli summary vantage-points
 2026-03-06 19:32:31,453 INFO: Loading work/archives/20260302-initstate.tar.zst.filelist.gz
 Vantage point     Objects   Repos  Missing repos
