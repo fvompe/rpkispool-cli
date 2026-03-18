@@ -1,9 +1,10 @@
+import gzip
 import logging
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
-import sys
 
 DEFAULT_BASE_URL = "https://josephine.sobornost.net/rpkidata/rpkispools"
 
@@ -16,7 +17,7 @@ def _download(url: str, dest: Path) -> None:
         return
 
     tmp_dest = Path(f"{dest}.tmp")
-    
+
     if tmp_dest.exists():
         logger.info("Resuming download for %s", url)
     else:
@@ -29,18 +30,29 @@ def _download(url: str, dest: Path) -> None:
     subprocess.run(cmd, check=True)
 
     logger.debug("Download completed: %s (%d bytes)", tmp_dest, os.path.getsize(tmp_dest))
-    
+
     tmp_dest.replace(dest)
 
 
 def _filelist(archive: Path) -> None:
-    list_file = Path(f"{archive}.filelist")
-    tmp_file = Path(f"{archive}.filelist.tmp")
+    list_file = Path(f"{archive}.filelist.gz")
+
+    if list_file.exists():
+        logger.info("Filelist already exists, skipping generation: %s", list_file)
+        return
+
+    tmp_file = Path(f"{archive}.filelist.gz.tmp")
 
     logger.info("Generating filelist for %s", archive)
 
-    with tmp_file.open("w") as f:
-        subprocess.run(["tar", "-tf", archive], stdout=f, check=True)
+    with gzip.open(tmp_file, "wb") as gz:
+        proc = subprocess.Popen(["tar", "-tf", archive], stdout=subprocess.PIPE)
+        assert proc.stdout is not None
+        for chunk in proc.stdout:
+            gz.write(chunk)
+        proc.wait()
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode, "tar")
 
     logger.info("Filelist generated: %s", list_file)
 
