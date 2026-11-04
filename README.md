@@ -52,18 +52,42 @@ The repository also has a `Makefile` with these as targets, see `make download`,
 
 ## Installation
 
-Using astralsh/uv it's really easy to install the CLI tool from the source code.
+With [uv](https://docs.astral.sh/uv/) the tool installs into its own environment and `rpkispool-cli` is available on your PATH. uv fetches the required Python version if needed.
 
-Clone this repository and then run:
+From GitHub (no clone needed), `main` by default:
 
 ```bash
-uv tool install -e .
+uv tool install git+https://github.com/fvompe/rpkispool-cli
 ```
 
-This will
+Pin a branch, tag or commit with `@<ref>`:
 
-- install `rpkispool-cli` globally for the current user
-- sources are referenced as python-editable, referencing current source code
+```bash
+uv tool install git+https://github.com/fvompe/rpkispool-cli@main
+uv tool install git+https://github.com/fvompe/rpkispool-cli@v0.1.0
+```
+
+From a local clone:
+
+```bash
+git clone https://github.com/fvompe/rpkispool-cli.git
+cd rpkispool-cli
+uv tool install .        # installs a copy of the current sources
+uv tool install -e .     # editable: the command runs the sources in this directory
+```
+
+Run once without installing:
+
+```bash
+uvx --from git+https://github.com/fvompe/rpkispool-cli rpkispool-cli --help
+```
+
+Update or remove:
+
+```bash
+uv tool upgrade rpkispool-cli
+uv tool uninstall rpkispool-cli
+```
 
 ## Development
 
