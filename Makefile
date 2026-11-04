@@ -1,7 +1,7 @@
 DATE ?= 20261103
 CLI = uv run rpkispool-cli --date $(DATE)
 
-.PHONY: hello test lint download verify coverage
+.PHONY: hello test lint download verify coverage coverage-repos
 
 hello:
 	@echo "This Makefile is intentionally left blank. Please check targets in it!"
@@ -21,3 +21,6 @@ verify:
 
 coverage:
 	$(CLI) coverage vantage-points
+
+coverage-repos:
+	$(CLI) coverage repositories
