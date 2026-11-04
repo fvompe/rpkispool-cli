@@ -17,6 +17,7 @@ rpkispl = "rpkispool.main:main"
 [dependency-groups]
 dev = [
     "pytest",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.3",
 ]
 
@@ -34,3 +35,7 @@ ignore = ["tests"]
 [tool.uv]
 # only use packages that are at least 5 days old
 exclude-newer = "5 days"
+
+[tool.pytest.ini_options]
+# show the 10 slowest tests and a coverage report with the missing lines
+addopts = "--durations=10 --cov=rpkispool --cov-report=term-missing"
