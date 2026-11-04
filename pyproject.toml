@@ -30,3 +30,7 @@ line-length = 160
 [tool.pyright]
 # no type diagnostics for tests
 ignore = ["tests"]
+
+[tool.uv]
+# only use packages that are at least 5 days old
+exclude-newer = "5 days"
