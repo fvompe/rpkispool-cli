@@ -44,7 +44,7 @@ class RPKIDate:
 CLI_MODULES = [
     "rpkispool.cli.download",
     "rpkispool.cli.verify",
-    "rpkispool.cli.summary",
+    "rpkispool.cli.coverage",
 ]
 
 

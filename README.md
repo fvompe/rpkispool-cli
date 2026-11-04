@@ -28,7 +28,7 @@ By default `rpkispool-cli` will operate on yesterday's date and store downloaded
 First of all
 
 1) download the materialization files using `download` command.
-2) use sub-commands to work with the downloaded files (e.g. `verify`, `summary`)
+2) use sub-commands to work with the downloaded files (e.g. `verify`, `coverage`)
 
 ```bash
 $ rpkispool-cli --help
@@ -67,7 +67,7 @@ Example:
 $ rpkispool-cli --output-dir download --date 20260202 download --filelists
 ```
 
-Note, that generating filelists is needed to operate with other commands, e.g. `verify` and `summary`.
+Note, that generating filelists is needed to operate with other commands, e.g. `verify` and `coverage`.
 
 On commodity hardware, generating filelist for a single archive takes around 15 minutes. 
 
@@ -105,11 +105,11 @@ OK  20260302-initstate.tar.zst.filelist.gz  (6029082 entries checked)
 OK  20260302-rpkispool.tar.zst.filelist.gz  (212111 entries checked)
 ```
 
-### Getting summary (rpkispool-cli summary)
+### Getting coverage (rpkispool-cli coverage)
 
 ```bash
-$ rpkispool-cli summary --help
-usage: rpkispool-cli summary [-h] {vantage-points,repositories} ...
+$ rpkispool-cli coverage --help
+usage: rpkispool-cli coverage [-h] {vantage-points,repositories} ...
 
 positional arguments:
   {vantage-points,repositories}
@@ -121,7 +121,7 @@ options:
 ```
 
 ```bash
-$ rpkispool-cli summary vantage-points
+$ rpkispool-cli coverage vantage-points
 2026-03-06 19:32:31,453 INFO: Loading work/archives/20260302-initstate.tar.zst.filelist.gz
 Vantage point     Objects   Repos  Missing repos
 ------------------------------------------------

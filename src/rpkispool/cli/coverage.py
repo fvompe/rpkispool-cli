@@ -1,5 +1,5 @@
 """
-Summary commands for rpkispool archives.
+Coverage commands for rpkispool archives.
 
 Subcommands:
   vantage-points   Level-1 summary: one row per vantage point
@@ -102,8 +102,8 @@ def cmd_repositories(args: Any) -> None:
 
 
 def add_parser(subparsers: Any) -> None:
-    summary = subparsers.add_parser("summary", help="Summarise initstate archive coverage")
-    sub = summary.add_subparsers(dest="summary_command")
+    coverage = subparsers.add_parser("coverage", help="Report initstate archive coverage")
+    sub = coverage.add_subparsers(dest="coverage_command")
     sub.required = True
 
     sub.add_parser("vantage-points", help="Per-vantage-point object and repo counts")
@@ -111,9 +111,9 @@ def add_parser(subparsers: Any) -> None:
 
 
 def run(args: Any) -> None:
-    if args.summary_command == "vantage-points":
+    if args.coverage_command == "vantage-points":
         cmd_vantage_points(args)
-    elif args.summary_command == "repositories":
+    elif args.coverage_command == "repositories":
         cmd_repositories(args)
     else:
-        raise ValueError(f"Unknown summary command: {args.summary_command}")
+        raise ValueError(f"Unknown coverage command: {args.coverage_command}")
