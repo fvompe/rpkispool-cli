@@ -10,7 +10,7 @@ The goal of this project is to provide easy and convenient interface to work wit
 
 ## Requirements 
 
-- Python 3.10 or higher
+- Python 3.15 or higher
 - astral-sh/uv (for development only)
 - tar with zstd support
 
