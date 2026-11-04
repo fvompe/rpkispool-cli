@@ -4,7 +4,7 @@ Terminal formatting utilities: ANSI colours and table rendering.
 
 import os
 import sys
-from typing import Callable
+from collections.abc import Callable
 
 # ANSI colour codes are disabled when stdout is not a TTY or NO_COLOR is set
 COLOUR = sys.stdout.isatty() and "NO_COLOR" not in os.environ

@@ -7,7 +7,7 @@ import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger("rpkispool.cli")
 
@@ -48,11 +48,11 @@ CLI_MODULES = [
 ]
 
 
-def _load_modules() -> Dict[str, Any]:
+def _load_modules() -> dict[str, Any]:
     """
     Dynamically import CLI modules and return a mapping of command names to modules.
     """
-    modules: Dict[str, Any] = {}
+    modules: dict[str, Any] = {}
 
     for mod_name in CLI_MODULES:
         try:
@@ -64,7 +64,7 @@ def _load_modules() -> Dict[str, Any]:
     return modules
 
 
-def main(argv: List[str] | None = None) -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rpkispool-cli", description="RPKISpool CLI tool")
     parser.add_argument("--date", metavar="YYYYMMDD", type=RPKIDate.parse, default=RPKIDate.default(), help="Date to operate on (default: yesterday)")
     parser.add_argument("--output-dir", default="work/archives", metavar="DIR", type=Path, help="Output directory (default: work/archives)")

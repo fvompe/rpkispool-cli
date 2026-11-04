@@ -1,9 +1,9 @@
 import gzip
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Iterator
 
 
 @dataclass
@@ -68,8 +68,7 @@ class FilelistCounts:
         maxes: dict[str, int] = defaultdict(int)
         for vp_counts in self.counts.values():
             for repo, n in vp_counts.items():
-                if n > maxes[repo]:
-                    maxes[repo] = n
+                maxes[repo] = max(maxes[repo], n)
         return dict(maxes)
 
 
