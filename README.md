@@ -87,12 +87,13 @@ Verification is performed against the requirements of [draft-snijders-rpkispool-
 
 ```bash
 $ rpkispool-cli verify --help
-usage: rpkispool-cli verify [-h] [--initstate] [--rpkispool]
+usage: rpkispool-cli verify [-h] [--initstate] [--rpkispool] [--content]
 
 options:
   -h, --help   show this help message and exit
   --initstate  Verify only the initstate filelist
   --rpkispool  Verify only the rpkispool filelist
+  --content    Also verify rpkispool archive content: SHA-256 names, .ccr timestamps, references (slow)
 ```
 
 Example:
@@ -150,6 +151,16 @@ $ rpkispool-cli coverage missing
 krill.rg.net	blr1
 krill.rg.net	blr2
 ```
+
+#### Content verification (`verify --content`)
+
+By default `verify` only reads the filelists. With `--content` it also reads the whole `rpkispool` archive once and checks:
+
+- every `static/` filename is the base64url SHA-256 of the file content
+- every `.ccr` is consistent with its filename and the archive date: `producedAt` is on the archive date, matches the timestamp in the filename (within 60 seconds), and is not earlier than `mostRecentUpdate`
+- every `static/` object is referenced by a `.ccr`. A CCR lists manifests only, so manifests must be listed in a `.ccr` directly and all other objects (CRLs, certificates, ROAs, ...) in the file list of a manifest
+
+This reads about 70 GB of decompressed data for a daily archive and takes around 10 minutes. It uses Python's built-in zstd support, so no external `zstd` or `tar` is needed for this step.
 
 ## Installation
 

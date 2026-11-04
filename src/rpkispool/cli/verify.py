@@ -1,15 +1,23 @@
 """
-Verify rpkispool archive filelists against draft-snijders-rpkispool-format.
+Verify rpkispool archive filelists (and optionally archive content) against draft-snijders-rpkispool-format.
 """
 
+import base64
+import hashlib
 import logging
 import re
 import sys
+import tarfile
+import time
+from compression.zstd import ZstdError
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from rpkispool.ccr import CCR, parse_ccr
 from rpkispool.filelists import filelist_path, iterate_filelist
+from rpkispool.manifest import is_manifest, manifest_file_hashes
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +28,35 @@ _BASE64URL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 # e.g. 20260302T000018Z
 _ISO8601_RE = re.compile(r"^(\d{4})(\d{2})(\d{2})T\d{6}Z$")
 
+# content checks: examples listed per failed check, the rest is only counted
+_MAX_EXAMPLES = 10
+
+# content checks: allowed gap between the timestamp in a .ccr filename and its producedAt
+_CCR_TIME_TOLERANCE = timedelta(seconds=60)
+
+_PROGRESS_EVERY = 250
+
 
 @dataclass
 class VerifyResult:
     archive: Path
     errors: list[str] = field(default_factory=list)
     checked: int = 0
+    failures: dict[str, int] = field(default_factory=dict)
 
     def error(self, line: int, path: str, msg: str) -> None:
         self.errors.append(f"line {line}: {path!r}: {msg}")
+
+    def failure(self, check: str, path: str, msg: str) -> None:
+        """Record a failed content check; only the first few examples per check are kept."""
+        n = self.failures[check] = self.failures.get(check, 0) + 1
+        if n <= _MAX_EXAMPLES:
+            self.errors.append(f"{check}: {path!r}: {msg}")
+
+    def summarise_failures(self) -> None:
+        for check, n in self.failures.items():
+            if n > _MAX_EXAMPLES:
+                self.errors.append(f"{check}: ... and {n - _MAX_EXAMPLES} more ({n} total)")
 
     @property
     def ok(self) -> bool:
@@ -137,19 +165,167 @@ def verify_rpkispool_file(filelist: Path) -> VerifyResult:
     return result
 
 
-def verify_archive(outdir: Any, date: str, archive_type: str, verify_fn: Any) -> bool:
-    filelist = filelist_path(outdir, date, archive_type)
-    if not filelist.exists():
-        logger.error("Filelist not found: %s (run 'download --filelists' first)", filelist)
-        return False
+def _check_ccr_times(result: VerifyResult, path: str, ccr: CCR, archive_date: str) -> None:
+    """
+    Check the timestamps inside a .ccr against its filename and the archive date.
 
-    logger.info("Verifying %s", filelist)
-    result = verify_fn(filelist)
+    - producedAt falls on the archive date
+    - producedAt matches the timestamp in the filename (within _CCR_TIME_TOLERANCE)
+    - mostRecentUpdate is not later than producedAt
+    """
+    produced = ccr.produced_at
 
-    if result.ok:
-        print(f"OK  {filelist.name}  ({result.checked} entries checked)")
+    if produced.strftime("%Y%m%d") != archive_date:
+        result.failure("ccr-date", path, f"producedAt {produced:%Y%m%dT%H%M%SZ} is not on archive date {archive_date}")
+
+    stamp = path.rsplit("/", 1)[-1].split("-", 1)[0]
+    try:
+        named = datetime.strptime(stamp, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC)
+    except ValueError:
+        return  # malformed filename is reported by the filelist checks
+
+    gap = abs(named - produced)
+    if gap > _CCR_TIME_TOLERANCE:
+        result.failure("ccr-time", path, f"producedAt {produced:%Y%m%dT%H%M%SZ} differs from filename timestamp by {int(gap.total_seconds())}s")
+
+    if ccr.most_recent_update is not None and ccr.most_recent_update > produced:
+        result.failure("ccr-time", path, f"mostRecentUpdate {ccr.most_recent_update:%Y%m%dT%H%M%SZ} is after producedAt")
+
+
+def verify_rpkispool_content(archive: Path, archive_date: str, expected_ccr: int = 0, expected_static: int = 0) -> VerifyResult:
+    """
+    Verify the content of an rpkispool archive in a single pass.
+
+    - static/ filenames match the SHA-256 (base64url) of the file content
+    - .ccr timestamps are consistent with the filename and the archive date
+    - every static/ object is referenced by a .ccr: manifests directly, other objects
+      through the file list of a manifest (a CCR only lists manifest hashes)
+
+    expected_ccr / expected_static (from the filelist, 0 if unknown) are only used to report progress.
+    """
+    result = VerifyResult(archive=archive)
+    started = time.monotonic()
+
+    static: dict[bytes, str] = {}  # decoded filename hash -> path
+    ccr_manifests: set[bytes] = set()  # manifest hashes listed in .ccr files
+    mft_files: set[bytes] = set()  # file hashes listed in manifests found in static/
+    ccr_count = 0
+
+    try:
+        with tarfile.open(archive, "r|zst") as tf:
+            for member in tf:
+                if not member.isfile():
+                    continue
+
+                is_static = member.name.startswith("static/")
+                is_ccr = member.name.endswith(".ccr")
+                if not (is_static or is_ccr):
+                    continue
+
+                fileobj = tf.extractfile(member)
+                assert fileobj is not None
+                data = fileobj.read()
+                result.checked += 1
+
+                if is_static:
+                    _check_static(result, member.name, data, static, mft_files)
+                    continue
+
+                ccr_count += 1
+                try:
+                    ccr = parse_ccr(data)
+                except (ValueError, IndexError) as e:
+                    result.failure("ccr-malformed", member.name, str(e))
+                    continue
+
+                ccr_manifests |= ccr.manifest_hashes
+                _check_ccr_times(result, member.name, ccr, archive_date)
+
+                if ccr_count % _PROGRESS_EVERY == 0:
+                    _log_progress(started, ccr_count, result.checked - ccr_count, expected_ccr, expected_static)
+    except (tarfile.TarError, OSError, EOFError, ZstdError) as e:
+        result.errors.append(f"cannot read archive: {e}")
+        return result
+
+    if ccr_count == 0:
+        result.errors.append("no .ccr files found in archive")
+
+    for key, path in static.items():
+        if key not in ccr_manifests and key not in mft_files:
+            result.failure("unreferenced", path, "not referenced by any .ccr (directly or via a manifest)")
+
+    result.summarise_failures()
+    logger.info("Content verified in %s", _fmt_duration(time.monotonic() - started))
+    return result
+
+
+def _fmt_duration(seconds: float) -> str:
+    minutes, secs = divmod(int(seconds), 60)
+    return f"{minutes}m{secs:02d}s"
+
+
+def _log_progress(started: float, ccr: int, static: int, expected_ccr: int, expected_static: int) -> None:
+    elapsed = time.monotonic() - started
+    if not expected_ccr:
+        logger.info("Processed %d .ccr files, %d static objects, elapsed %s", ccr, static, _fmt_duration(elapsed))
+        return
+
+    # .ccr files dominate the data volume, so they are the best progress estimate
+    done = min(ccr / expected_ccr, 1.0)
+    eta = elapsed * (1 - done) / done
+    logger.info(
+        "Processed %d/%d .ccr files (%d%%), %d/%d static objects, elapsed %s, ETA %s",
+        ccr,
+        expected_ccr,
+        done * 100,
+        static,
+        expected_static,
+        _fmt_duration(elapsed),
+        _fmt_duration(eta),
+    )
+
+
+def _count_entries(filelist: Path) -> tuple[int, int]:
+    """Return the number of .ccr and static/ entries listed in an rpkispool filelist."""
+    ccr = static = 0
+    for _, path in iterate_filelist(filelist):
+        if path.startswith("static/"):
+            static += 1
+        elif path.endswith(".ccr"):
+            ccr += 1
+    return ccr, static
+
+
+def _check_static(result: VerifyResult, path: str, data: bytes, static: dict[bytes, str], mft_files: set[bytes]) -> None:
+    digest = hashlib.sha256(data).digest()
+    name = path.rsplit("/", 1)[-1]
+    expected = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+
+    if name == expected:
+        key = digest
     else:
-        print(f"FAIL  {filelist.name}  ({result.checked} entries checked, {len(result.errors)} error(s))")
+        result.failure("sha256", path, f"content hash is {expected}")
+        try:
+            key = base64.urlsafe_b64decode(name + "=" * (-len(name) % 4))
+        except ValueError:
+            return
+        if len(key) != 32:
+            return
+
+    static[key] = path
+
+    if is_manifest(data):
+        try:
+            mft_files |= manifest_file_hashes(data)
+        except (ValueError, IndexError) as e:
+            result.failure("manifest-malformed", path, str(e))
+
+
+def _report(name: str, result: VerifyResult) -> bool:
+    if result.ok:
+        print(f"OK  {name}  ({result.checked} entries checked)")
+    else:
+        print(f"FAIL  {name}  ({result.checked} entries checked, {len(result.errors)} error(s))")
 
         for err in result.errors:
             print(f"  {err}", file=sys.stderr)
@@ -157,10 +333,37 @@ def verify_archive(outdir: Any, date: str, archive_type: str, verify_fn: Any) ->
     return result.ok
 
 
+def verify_archive(outdir: Any, date: str, archive_type: str, verify_fn: Any) -> bool:
+    filelist = filelist_path(outdir, date, archive_type)
+    if not filelist.exists():
+        logger.error("Filelist not found: %s (run 'download --filelists' first)", filelist)
+        return False
+
+    logger.info("Verifying %s", filelist)
+    return _report(filelist.name, verify_fn(filelist))
+
+
+def verify_content(outdir: Path, date: str) -> bool:
+    archive = outdir / f"{date}-rpkispool.tar.zst"
+    if not archive.exists():
+        logger.error("Archive not found: %s (run 'download' first)", archive)
+        return False
+
+    expected_ccr = expected_static = 0
+    filelist = filelist_path(outdir, date, "rpkispool")
+    if filelist.exists():
+        expected_ccr, expected_static = _count_entries(filelist)
+        logger.info("Expecting %d .ccr files and %d static objects (from %s)", expected_ccr, expected_static, filelist.name)
+
+    logger.info("Verifying content of %s (this takes a while)", archive)
+    return _report(archive.name, verify_rpkispool_content(archive, date, expected_ccr, expected_static))
+
+
 def add_parser(subparsers: Any) -> None:
     verify = subparsers.add_parser("verify", help="Verify archive filelists against draft-snijders-rpkispool-format")
     verify.add_argument("--initstate", action="store_true", help="Verify only the initstate filelist")
     verify.add_argument("--rpkispool", action="store_true", help="Verify only the rpkispool filelist")
+    verify.add_argument("--content", action="store_true", help="Also verify rpkispool archive content: SHA-256 names, .ccr timestamps, references (slow)")
 
 
 def run(args: Any) -> None:
@@ -181,6 +384,9 @@ def run(args: Any) -> None:
 
     if check_rpkispool:
         is_ok &= verify_archive(outdir, date, "rpkispool", verify_rpkispool_file)
+
+    if args.content:
+        is_ok &= verify_content(outdir, date)
 
     if not is_ok:
         sys.exit(1)
