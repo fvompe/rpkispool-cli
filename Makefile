@@ -14,7 +14,7 @@ lint:
 	uv run --with mypy mypy src
 
 download:
-	$(CLI) download --filelists
+	$(CLI) download
 
 verify:
 	$(CLI) verify

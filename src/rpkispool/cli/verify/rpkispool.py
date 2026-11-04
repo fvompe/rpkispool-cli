@@ -40,7 +40,7 @@ class RpkispoolFilelist:
     def verify(self, ctx: Context) -> VerifyResult:
         filelist = filelist_path(ctx.outdir, ctx.date, "rpkispool")
         if not filelist.exists():
-            return missing_input(filelist, "download --filelists")
+            return missing_input(filelist, "download")
 
         logger.info("Verifying %s", filelist)
         result = VerifyResult(archive=filelist)

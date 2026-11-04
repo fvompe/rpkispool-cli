@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def _load(args: Any) -> FilelistCounts:
     filelist = filelist_path(args.output_dir, str(args.date), "initstate")
     if not filelist.exists():
-        logger.error("Filelist not found: %s (run 'download --filelists' first)", filelist)
+        logger.error("Filelist not found: %s (run 'download' first)", filelist)
         sys.exit(1)
 
     logger.info("Loading %s", filelist)

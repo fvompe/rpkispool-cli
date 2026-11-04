@@ -1,3 +1,4 @@
+import argparse
 import gzip
 import logging
 import os
@@ -105,7 +106,7 @@ def add_parser(subparsers: Any) -> None:
     )
     download.add_argument("--initstate", action="store_true", help="Download only the initstate archive")
     download.add_argument("--rpkispool", action="store_true", help="Download only the rpkispool archive")
-    download.add_argument("--filelists", action="store_true", help="Generate .filelist files after download")
+    download.add_argument("--filelists", action=argparse.BooleanOptionalAction, default=True, help="Generate .filelist files after download (default: yes)")
 
 
 def run(args: Any) -> None:
