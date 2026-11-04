@@ -124,25 +124,32 @@ options:
 
 ```bash
 $ rpkispool-cli coverage vantage-points
-2026-03-06 19:32:31,453 INFO: Loading work/archives/20260302-initstate.tar.zst.filelist.gz
-Vantage point     Objects   Repos  Missing repos
-------------------------------------------------
-ams1              502,508      59  krill.uta.ng, repodepot.wildtky.com, rki.plasmanodes.com, rpki.gxt.network, rsync.rpki.tianhai.link
-blr1              502,548      63  krill.rg.net
-blr2              502,131      55  krill.rg.net, repo.rpki.space, rpki-rsync.warpnet.xyz, rpki.admin.freerangecloud.com, rpki.gns.net.br, rpki.gxt.network, rpki.ruinet.work, rpki.sailx.co, rsync.rpki.tianhai.link
-dus1              502,501      59  krill.uta.ng, repodepot.wildtky.com, rki.plasmanodes.com, rpki.gxt.network, rsync.rpki.tianhai.link
-miso              502,505      58  krill.rg.net, krill.uta.ng, repodepot.wildtky.com, rki.plasmanodes.com, rpki.gxt.network, rsync.rpki.tianhai.link
-nyc1              502,503      59  krill.uta.ng, repodepot.wildtky.com, rki.plasmanodes.com, rpki.gxt.network, rsync.rpki.tianhai.link
-sng1              502,504      58  krill.rg.net, krill.uta.ng, repodepot.wildtky.com, rki.plasmanodes.com, rpki.gxt.network, rsync.rpki.tianhai.link
-syd1              502,558      63  krill.rg.net
-syd2              502,130      55  krill.rg.net, repo.rpki.space, rpki-rsync.warpnet.xyz, rpki.admin.freerangecloud.com, rpki.gns.net.br, rpki.gxt.network, rpki.ruinet.work, rpki.sailx.co, rsync.rpki.tianhai.link
-yyz1              502,499      58  krill.rg.net, krill.uta.ng, repodepot.wildtky.com, rki.plasmanodes.com, rpki.gxt.network, rsync.rpki.tianhai.link
-zur1              502,558      63  krill.rg.net
-zur2              502,137      55  krill.rg.net, repo.rpki.space, repodepot.wildtky.com, rpki.admin.freerangecloud.com, rpki.gns.net.br, rpki.gxt.network, rpki.ruinet.work, rpki.sailx.co, rsync.rpki.tianhai.link
+2026-11-04 19:17:26,388 INFO: Loading work/archives/20261103-initstate.tar.zst.filelist.gz
+Vantage point  Objects  Repos  Missing repos
+---------------------------------------------------------------------------------------------------------------------
+ams1           572,451     76  2: rpki-pp.com, rsync.prefixlogic.com
+ams3           572,417     76  2: rpki-pp.com, rsync.prefixlogic.com
+ams4           572,498     78  -
+ams5           572,457     78  -
+blr1           572,451     78  -
+blr2           571,809     60  18: alias.rpki-measurement.site, krill.cxy.hk, krill.peravix.group, ... +15 more
+cpt1           572,457     78  -
+dus1           572,451     76  2: rpki-pp.com, rsync.prefixlogic.com
+miso           572,451     76  2: rpki-pp.com, rsync.prefixlogic.com
+nyc1           572,451     76  2: rpki-pp.com, rsync.prefixlogic.com
+pek1           572,498     78  -
+rix1           572,443     78  -
+syd1           572,446     78  -
+syd2           571,797     60  18: alias.rpki-measurement.site, krill.cxy.hk, krill.peravix.group, ... +15 more
+yyz1           572,449     75  3: alias.rpki-measurement.site, rpki-pp.com, rsync.prefixlogic.com
+zia1           513,044     66  12: krill.47272.net, krill.dacs.utwente.nl, krill.peering.ee.columbia.edu, ... +9 more
+zur1           572,446     78  -
 
-Total vantage points : 12
-Total unique repos   : 64
+Total vantage points : 17
+Total unique repos   : 78
 ```
+
+The `Missing repos` column shows the number of missing repositories and the first three names. Use `--full` to list all of them, or `coverage missing` for a flat list per repository and vantage point.
 
 `coverage missing` prints one `repository<TAB>vantage-point` pair per line for every gap, which is easy to pipe into `grep`, `sort` or `diff`. Add `--fail` to exit with status 1 when any gap exists (e.g. in cron or CI).
 

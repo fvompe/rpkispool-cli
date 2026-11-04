@@ -27,6 +27,22 @@ def _load(args: Any) -> FilelistCounts:
     return FilelistCounts.from_path(filelist)
 
 
+SHORT_NAMES = 3
+
+
+def format_missing(repos: list[str], full: bool) -> str:
+    """Return the 'Missing repos' cell: '-' if none, all names if full, else a count with the first few names."""
+    if not repos:
+        return "-"
+    if full:
+        return ", ".join(repos)
+
+    text = f"{len(repos)}: " + ", ".join(repos[:SHORT_NAMES])
+    if len(repos) > SHORT_NAMES:
+        text += f", ... +{len(repos) - SHORT_NAMES} more"
+    return text
+
+
 def cmd_vantage_points(args: Any) -> None:
     data = _load(args)
 
@@ -36,14 +52,12 @@ def cmd_vantage_points(args: Any) -> None:
 
     rows = []
     for vp in vantage_points:
-        missing_repos = ", ".join(data.missing_repos(vp)) or "-"
-
         rows.append(
             [
                 vp,
                 f"{data.total_objects(vp):,}",
                 str(data.repo_count(vp)),
-                missing_repos,
+                format_missing(data.missing_repos(vp), args.full),
             ]
         )
 
@@ -116,7 +130,8 @@ def add_parser(subparsers: Any) -> None:
     sub = coverage.add_subparsers(dest="coverage_command")
     sub.required = True
 
-    sub.add_parser("vantage-points", help="Per-vantage-point object and repo counts")
+    vantage_points = sub.add_parser("vantage-points", help="Per-vantage-point object and repo counts")
+    vantage_points.add_argument("--full", action="store_true", help="List all missing repos instead of a short summary")
     sub.add_parser("repositories", help="Per-repository coverage matrix across vantage points")
     missing = sub.add_parser("missing", help="List repositories missing at each vantage point (repo<TAB>vantage-point)")
     missing.add_argument("--fail", action="store_true", help="Exit with status 1 if any gap is found")

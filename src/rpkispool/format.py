@@ -62,17 +62,19 @@ def print_table(
 
     widths = calc_column_widths(headers, rows)
 
+    # a left-aligned last column needs no padding, which would only add trailing spaces
+    pad_widths = widths[:-1] + [0] if alignments[-1] == "<" else widths
+
     def _fmt(cells: list[str], row_idx: int | None = None) -> str:
         parts = []
-        for col_idx, (cell, align, width) in enumerate(zip(cells, alignments, widths)):
+        for col_idx, (cell, align, width) in enumerate(zip(cells, alignments, pad_widths)):
             formatted = f"{cell:{align}{width}}"
             if row_idx is not None and cell_formatter is not None:
                 formatted = cell_formatter(row_idx, col_idx, formatted)
             parts.append(formatted)
         return col_sep.join(parts)
 
-    header_line = _fmt(headers)
-    print(header_line)
-    print("-" * len(header_line))
+    print(_fmt(headers))
+    print("-" * (sum(widths) + len(col_sep) * (len(widths) - 1)))
     for row_idx, row in enumerate(rows):
         print(_fmt(row, row_idx))
