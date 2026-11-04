@@ -8,6 +8,7 @@ dependencies = []
 
 [project.scripts]
 rpkispool-cli = "rpkispool.main:main"
+rpkispl = "rpkispool.main:main"
 
 [dependency-groups]
 dev = [
