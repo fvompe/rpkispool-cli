@@ -45,6 +45,7 @@ CLI_MODULES = [
     "rpkispool.cli.download",
     "rpkispool.cli.verify",
     "rpkispool.cli.coverage",
+    "rpkispool.cli.eventlog",
 ]
 
 

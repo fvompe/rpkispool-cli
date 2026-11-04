@@ -24,6 +24,7 @@ Following features are supported:
 - Downloading materialization files (`download` command)
 - Validating consistency of downloaded initspool and rpkispool files (`verify` command)
 - Reporting repository coverage across vantage points (`coverage` command)
+- Printing per-node ROA and ASPA change events from CCR differences (`eventlog` command)
 
 ## Commands
 
@@ -39,6 +40,7 @@ The date can also be set with the `RPKISPOOL_DATE` environment variable (`--date
 | `rpkispool-cli download` | [doc/download.md](doc/download.md) |
 | `rpkispool-cli verify`   | [doc/verify.md](doc/verify.md)     |
 | `rpkispool-cli coverage` | [doc/coverage.md](doc/coverage.md) |
+| `rpkispool-cli eventlog` | [doc/eventlog.md](doc/eventlog.md) |
 
 Typical session:
 
