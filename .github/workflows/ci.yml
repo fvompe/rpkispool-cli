@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# the workflow only needs to read the repository
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # pinned to a commit (v4.2.2); the token is not kept in the checkout
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+
+      # tests and linter run in a throwaway alpine container on a copy of the sources;
+      # the lock file must be up to date (UV_LOCKED)
+      - name: Run tests and linter
+        run: |
+          docker run --rm \
+            --env UV_LOCKED=1 \
+            --volume "$PWD:/src:ro" \
+            alpine:3.24 \
+            sh -eu -c '
+              apk add --no-cache uv make
+              cp -a /src /work
+              cd /work
+              make test lint
+            '
