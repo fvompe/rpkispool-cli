@@ -5,3 +5,5 @@ misc
 .venv
 work
 __pycache__
+.env
+.coverage

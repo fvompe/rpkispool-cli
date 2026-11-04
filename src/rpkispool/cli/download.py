@@ -1,13 +1,55 @@
+import argparse
+import gzip
 import logging
 import os
 import subprocess
+import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any
-import sys
 
 DEFAULT_BASE_URL = "https://josephine.sobornost.net/rpkidata/rpkispools"
 
 logger = logging.getLogger(__name__)
+
+
+CHUNK_SIZE = 1024 * 1024
+TIMEOUT = 60
+
+
+def _fetch(url: str, tmp_dest: Path) -> None:
+    """Fetch url into tmp_dest, continuing from its current size when possible."""
+    offset = tmp_dest.stat().st_size if tmp_dest.exists() else 0
+    headers = {"Range": f"bytes={offset}-"} if offset else {}
+
+    try:
+        resp = urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=TIMEOUT)
+    except urllib.error.HTTPError as e:
+        if e.code == 416:
+            tmp_dest.unlink()
+            raise OSError(f"Cannot resume {tmp_dest}, partial file removed, please rerun") from e
+        raise
+
+    with resp:
+        if resp.status != 206:
+            offset = 0  # no resume support, start over
+        length = resp.headers.get("Content-Length")
+        total = offset + int(length) if length else None
+        done = offset
+        tty = sys.stderr.isatty()
+
+        with open(tmp_dest, "ab" if offset else "wb") as f:
+            while chunk := resp.read(CHUNK_SIZE):
+                f.write(chunk)
+                done += len(chunk)
+                if tty and total:
+                    sys.stderr.write(f"\r{done * 100 / total:5.1f}%  {done >> 20} / {total >> 20} MiB")
+        if tty and total:
+            sys.stderr.write("\n")
+
+    if total is not None and done != total:
+        raise OSError(f"Incomplete download of {url}: {done} of {total} bytes")
 
 
 def _download(url: str, dest: Path) -> None:
@@ -16,31 +58,38 @@ def _download(url: str, dest: Path) -> None:
         return
 
     tmp_dest = Path(f"{dest}.tmp")
-    
+
     if tmp_dest.exists():
         logger.info("Resuming download for %s", url)
     else:
         logger.info("Downloading %s to %s", url, dest)
 
-    cmd = ["curl", "-L", "--fail", "--progress-bar", "-C", "-", "-o", str(tmp_dest), url]
-    if not sys.stdout.isatty():
-        cmd.append("--silent")
-
-    subprocess.run(cmd, check=True)
+    _fetch(url, tmp_dest)
 
     logger.debug("Download completed: %s (%d bytes)", tmp_dest, os.path.getsize(tmp_dest))
-    
+
     tmp_dest.replace(dest)
 
 
 def _filelist(archive: Path) -> None:
-    list_file = Path(f"{archive}.filelist")
-    tmp_file = Path(f"{archive}.filelist.tmp")
+    list_file = Path(f"{archive}.filelist.gz")
+
+    if list_file.exists():
+        logger.info("Filelist already exists, skipping generation: %s", list_file)
+        return
+
+    tmp_file = Path(f"{archive}.filelist.gz.tmp")
 
     logger.info("Generating filelist for %s", archive)
 
-    with tmp_file.open("w") as f:
-        subprocess.run(["tar", "-tf", archive], stdout=f, check=True)
+    with gzip.open(tmp_file, "wb", compresslevel=1) as gz:
+        proc = subprocess.Popen(["tar", "-tf", archive], stdout=subprocess.PIPE)
+        assert proc.stdout is not None
+        for chunk in proc.stdout:
+            gz.write(chunk)
+        proc.wait()
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode, "tar")
 
     logger.info("Filelist generated: %s", list_file)
 
@@ -57,7 +106,7 @@ def add_parser(subparsers: Any) -> None:
     )
     download.add_argument("--initstate", action="store_true", help="Download only the initstate archive")
     download.add_argument("--rpkispool", action="store_true", help="Download only the rpkispool archive")
-    download.add_argument("--filelists", action="store_true", help="Generate .filelist files after download")
+    download.add_argument("--filelists", action=argparse.BooleanOptionalAction, default=True, help="Generate .filelist files after download (default: yes)")
 
 
 def run(args: Any) -> None:

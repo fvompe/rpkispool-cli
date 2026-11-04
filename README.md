@@ -1,78 +1,95 @@
-# RPKISpool CLI
+# rpkispool-cli
 
-RPKISpool-CLI is a tiny command-line utility to work with RPKISpool materialization files.
+**rpkispool-cli** is a command-line utility to work with RPKISpool materialization files.
 
 The goal of this project is to provide easy and convenient interface to work with RPKISpool materialization files as defined in [draft-snijders-rpkispool-format](https://datatracker.ietf.org/doc/draft-snijders-rpkispool-format/).
 
-## Core assumptions
+## Core Philosophy
 
-- Minimal dependencies: We use as few python features and libraries as possible to make the tool portable and maintainbale in next 10 years
+- We prefer Python's standard library and a small, carefully selected set of external dependencies.
+- We avoid unnecessary language features, frameworks, and abstractions.
+
+**Rationale**: Keep the tool portable, simple to maintain, and reliable over a 10-year lifespan.
 
 ## Requirements 
 
-- Python 3.10 or higher
+- Python 3.15 or higher
 - astral-sh/uv (for development only)
-- tar with zstd support
-- curl
+- tar with zstd support (to generate filelists)
+
+## Features
+
+Following features are supported:
+
+- Downloading materialization files (`download` command)
+- Validating consistency of downloaded initspool and rpkispool files (`verify` command)
+- Reporting repository coverage across vantage points (`coverage` command)
 
 ## Commands
 
-By default `rpkispool-cli` will operate on yesterday's date and store downloaded files in `work/archives` directory.
+By default `rpkispool-cli` operates on yesterday's date (change with `--date YYYYMMDD`) 
+and stores files in `work/archives` (change with `--output-dir DIR`).
 
-First of all
+`rpkispl` is a short alias for `rpkispool-cli`, e.g. `rpkispl verify`.
 
-1) download the materialization files using `download` command.
-2) use sub-commands to work with the downloaded files (e.g. `verify`, `summary`)
+The date can also be set with the `RPKISPOOL_DATE` environment variable (`--date` takes precedence). The `Makefile` loads an optional `.env` file, so copy `.env.example` to `.env` to pin the date for all `make` targets.
 
-```bash
-uv run rpkispool-cli --help
-usage: rpkispool-cli [-h] [--date YYYYMMDD] [--output-dir DIR] [--verbose] {download} ...
+| Command                  | Documentation                      |
+| ------------------------ | ---------------------------------- |
+| `rpkispool-cli download` | [doc/download.md](doc/download.md) |
+| `rpkispool-cli verify`   | [doc/verify.md](doc/verify.md)     |
+| `rpkispool-cli coverage` | [doc/coverage.md](doc/coverage.md) |
 
-RPKISpool CLI tool
-
-positional arguments:
-  {download}
-    download        Download RPKI spool archives
-
-options:
-  -h, --help        show this help message and exit
-  --date YYYYMMDD   Date to operate on (default: yesterday)
-  --output-dir DIR  Output directory (default: work/archives)
-  --verbose, -v     Increase verbosity
-```
-
-### Downloading materialization files (rpkispool-cli download)
+Typical session:
 
 ```bash
-uv run rpkispool-cli download --help
-usage: rpkispool-cli download [-h] [--base-url URL] [--initstate] [--rpkispool] [--filelists]
-
-options:
-  -h, --help      show this help message and exit
-  --base-url URL  Base URL for downloads (default: https://josephine.sobornost.net/rpkidata/rpkispools)
-  --initstate     Download only the initstate archive
-  --rpkispool     Download only the rpkispool archive
-  --filelists     Generate .filelist files after download
+$ rpkispool-cli --date 20261103 download
+$ rpkispool-cli --date 20261103 verify
+$ rpkispool-cli --date 20261103 coverage vantage-points
 ```
 
-Example:
+Use `rpkispool-cli --help` and `rpkispool-cli <command> --help` for all options. 
 
-```bash
-rpkispool-cli --output-dir download --date 20260202 download --filelists
-```
-
+The repository also has a `Makefile` with these as targets, see `make download`, `make verify`, `make coverage`.
 
 ## Installation
 
-Using astralsh/uv it's really easy to install the CLI tool from the source code.
+With [uv](https://docs.astral.sh/uv/) the tool installs into its own environment and `rpkispool-cli` is available on your PATH. uv fetches the required Python version if needed.
 
-Clone this repository and then run:
+From GitHub (no clone needed), `main` by default:
 
 ```bash
-uv tool install -e .
+uv tool install git+https://github.com/fvompe/rpkispool-cli
 ```
 
-This will install rpkispool-cli in your environment and reference this sources.
+Pin a branch, tag or commit with `@<ref>`:
+
+```bash
+uv tool install git+https://github.com/fvompe/rpkispool-cli@main
+uv tool install git+https://github.com/fvompe/rpkispool-cli@v0.1.0
+```
+
+From a local clone:
+
+```bash
+git clone https://github.com/fvompe/rpkispool-cli.git
+cd rpkispool-cli
+uv tool install .        # installs a copy of the current sources
+uv tool install -e .     # editable: the command runs the sources in this directory
+```
+
+Run once without installing:
+
+```bash
+uvx --from git+https://github.com/fvompe/rpkispool-cli rpkispool-cli --help
+```
+
+Update or remove:
+
+```bash
+uv tool upgrade rpkispool-cli
+uv tool uninstall rpkispool-cli
+```
 
 ## Development
 
@@ -89,6 +106,8 @@ To run tests, use
 ```
 uv run pytest
 ```
+
+The tests use a small fixture cut from real archives, see [doc/fixtures.md](doc/fixtures.md).
 
 ## Authors
 

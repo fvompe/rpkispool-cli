@@ -1,0 +1,148 @@
+"""
+Coverage commands for rpkispool archives.
+
+Subcommands:
+  vantage-points   Level-1 summary: one row per vantage point
+  repositories     Level-2 matrix:  one row per repository, columns per vantage point
+  missing          Flat list of repository/vantage-point gaps, one per line
+"""
+
+import logging
+import sys
+from typing import Any
+
+from rpkispool.filelists import FilelistCounts, filelist_path
+from rpkispool.format import GREEN, RED, RESET, YELLOW, colour_cell, print_table
+
+logger = logging.getLogger(__name__)
+
+
+def _load(args: Any) -> FilelistCounts:
+    filelist = filelist_path(args.output_dir, str(args.date), "initstate")
+    if not filelist.exists():
+        logger.error("Filelist not found: %s (run 'download' first)", filelist)
+        sys.exit(1)
+
+    logger.info("Loading %s", filelist)
+    return FilelistCounts.from_path(filelist)
+
+
+SHORT_NAMES = 3
+
+
+def format_missing(repos: list[str], full: bool) -> str:
+    """Return the 'Missing repos' cell: '-' if none, all names if full, else a count with the first few names."""
+    if not repos:
+        return "-"
+    if full:
+        return ", ".join(repos)
+
+    text = f"{len(repos)}: " + ", ".join(repos[:SHORT_NAMES])
+    if len(repos) > SHORT_NAMES:
+        text += f", ... +{len(repos) - SHORT_NAMES} more"
+    return text
+
+
+def cmd_vantage_points(args: Any) -> None:
+    data = _load(args)
+
+    vantage_points = data.vantage_points
+
+    headers = ["Vantage point", "Objects", "Repos", "Missing repos"]
+
+    rows = []
+    for vp in vantage_points:
+        rows.append(
+            [
+                vp,
+                f"{data.total_objects(vp):,}",
+                str(data.repo_count(vp)),
+                format_missing(data.missing_repos(vp), args.full),
+            ]
+        )
+
+    print_table(headers, rows, alignments=["<", ">", ">", "<"])
+
+    print()
+    print(f"Total vantage points : {len(vantage_points)}")
+    print(f"Total unique repos   : {len(data.all_repos)}")
+
+
+def format_coverage_cell(n: int, max_n: int) -> str:
+    """Return the plain-text label for a repository coverage cell: ok / -- / -N."""
+    if n == 0:
+        return "--"
+    if n == max_n:
+        return "ok"
+    return f"-{max_n - n}"
+
+
+def cmd_repositories(args: Any) -> None:
+    data = _load(args)
+
+    vantage_points = data.vantage_points
+    repos = sorted(data.all_repos)
+    repo_max = data.all_repo_maxes()
+
+    headers = ["Repository"] + vantage_points
+    rows = []
+
+    for repo in repos:
+        row = [repo]
+        for vp in vantage_points:
+            count = data.get(vp, repo)
+            row.append(format_coverage_cell(count, repo_max[repo]))
+        rows.append(row)
+
+    def colour_row_cell(row_idx: int, col_idx: int, formatted: str) -> str:
+        if col_idx == 0:
+            return formatted
+        repo = repos[row_idx]
+        n = data.get(vantage_points[col_idx - 1], repo)
+        return colour_cell(formatted, n, repo_max[repo])
+
+    print_table(
+        headers,
+        rows,
+        alignments=["<"] + ["^"] * len(vantage_points),
+        cell_formatter=colour_row_cell,
+    )
+
+    print()
+    legend = f"  {GREEN}ok{RESET} = present (full)  {RED}--{RESET} = missing"
+    legend += f"  {YELLOW}-N{RESET} = present but N objects fewer than max"
+    print(legend)
+
+
+def cmd_missing(args: Any) -> None:
+    data = _load(args)
+
+    gaps = [(repo, vp) for repo in sorted(data.all_repos) for vp in data.vantage_points if data.get(vp, repo) == 0]
+    for repo, vp in gaps:
+        print(f"{repo}\t{vp}")
+
+    if gaps and args.fail:
+        sys.exit(1)
+
+
+def add_parser(subparsers: Any) -> None:
+    coverage = subparsers.add_parser("coverage", help="Report initstate archive coverage")
+    sub = coverage.add_subparsers(dest="coverage_command")
+    sub.required = True
+
+    vantage_points = sub.add_parser("vantage-points", help="Per-vantage-point object and repo counts")
+    vantage_points.add_argument("--full", action="store_true", help="List all missing repos instead of a short summary")
+    sub.add_parser("repositories", help="Per-repository coverage matrix across vantage points")
+    missing = sub.add_parser("missing", help="List repositories missing at each vantage point (repo<TAB>vantage-point)")
+    missing.add_argument("--fail", action="store_true", help="Exit with status 1 if any gap is found")
+
+
+def run(args: Any) -> None:
+    if args.coverage_command == "vantage-points":
+        cmd_vantage_points(args)
+    elif args.coverage_command == "repositories":
+        cmd_repositories(args)
+    elif args.coverage_command == "missing":
+        cmd_missing(args)
+    else:
+        raise ValueError(f"Unknown coverage command: {args.coverage_command}")

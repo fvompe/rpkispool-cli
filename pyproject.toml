@@ -1,17 +1,24 @@
 [project]
 name = "rpkispool-cli"
 version = "0.1.0"
-description = "RPKISpool CLI tool"
+description = "Download, verify and inspect the coverage of RPKISpool materialization files (draft-snijders-rpkispool-format)"
+authors = [
+    { name = "Fedor Vompe" },
+    { name = "Job Snijders" },
+]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.15"
 dependencies = []
 
 [project.scripts]
 rpkispool-cli = "rpkispool.main:main"
+rpkispl = "rpkispool.main:main"
 
 [dependency-groups]
 dev = [
-    "pytest"
+    "pytest",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.3",
 ]
 
 [build-system]
@@ -20,3 +27,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 line-length = 160
+
+[tool.pyright]
+# no type diagnostics for tests
+ignore = ["tests"]
+
+[tool.uv]
+# only use packages that are at least 5 days old
+exclude-newer = "5 days"
+
+[tool.pytest.ini_options]
+# show the 10 slowest tests and a coverage report with the missing lines
+addopts = "--durations=10 --cov=rpkispool --cov-report=term-missing"

@@ -1,12 +1,13 @@
 import argparse
 import importlib
+import logging
+import os
 import re
 import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Dict, List
-import logging
+from typing import Any
 
 logger = logging.getLogger("rpkispool.cli")
 
@@ -18,14 +19,18 @@ class RPKIDate:
     day: str
 
     @classmethod
-    def default(cls) -> "RPKIDate":
+    def default(cls) -> RPKIDate:
         """
         Return the default date (yesterday) as an RPKIDate instance.
         """
-        return cls.parse((date.today() - timedelta(days=1)).strftime("%Y%m%d"))    
+        env_date = os.environ.get("RPKISPOOL_DATE")
+        if env_date:
+            return cls.parse(env_date)
+
+        return cls.parse((date.today() - timedelta(days=1)).strftime("%Y%m%d"))
 
     @classmethod
-    def parse(cls, value: str) -> "RPKIDate":
+    def parse(cls, value: str) -> RPKIDate:
         m = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", value)
         if not m:
             raise argparse.ArgumentTypeError(f"Invalid date format '{value}' (expected YYYYMMDD)")
@@ -34,16 +39,20 @@ class RPKIDate:
     def __str__(self) -> str:
         return f"{self.year}{self.month}{self.day}"
 
+
 # add new cli modules here
 CLI_MODULES = [
     "rpkispool.cli.download",
+    "rpkispool.cli.verify",
+    "rpkispool.cli.coverage",
 ]
 
-def _load_modules() -> Dict[str, Any]:
+
+def _load_modules() -> dict[str, Any]:
     """
     Dynamically import CLI modules and return a mapping of command names to modules.
     """
-    modules: Dict[str, Any] = {}
+    modules: dict[str, Any] = {}
 
     for mod_name in CLI_MODULES:
         try:
@@ -54,9 +63,10 @@ def _load_modules() -> Dict[str, Any]:
 
     return modules
 
-def main(argv: List[str] | None = None) -> None:
+
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rpkispool-cli", description="RPKISpool CLI tool")
-    parser.add_argument("--date", metavar="YYYYMMDD", type=RPKIDate.parse, default=RPKIDate.default(), help="Date to operate on (default: yesterday)")
+    parser.add_argument("--date", metavar="YYYYMMDD", type=RPKIDate.parse, default=RPKIDate.default(), help="Date to operate on (default: $RPKISPOOL_DATE, else yesterday)")
     parser.add_argument("--output-dir", default="work/archives", metavar="DIR", type=Path, help="Output directory (default: work/archives)")
     parser.add_argument("--verbose", "-v", action="count", default=1, help="Increase verbosity")
 
