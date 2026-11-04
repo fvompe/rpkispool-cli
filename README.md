@@ -109,12 +109,13 @@ OK  20260302-rpkispool.tar.zst.filelist.gz  (212111 entries checked)
 
 ```bash
 $ rpkispool-cli coverage --help
-usage: rpkispool-cli coverage [-h] {vantage-points,repositories} ...
+usage: rpkispool-cli coverage [-h] {vantage-points,repositories,missing} ...
 
 positional arguments:
-  {vantage-points,repositories}
+  {vantage-points,repositories,missing}
     vantage-points      Per-vantage-point object and repo counts
     repositories        Per-repository coverage matrix across vantage points
+    missing             List repositories missing at each vantage point (repo<TAB>vantage-point)
 
 options:
   -h, --help            show this help message and exit
@@ -140,6 +141,14 @@ zur2              502,137      55  krill.rg.net, repo.rpki.space, repodepot.wild
 
 Total vantage points : 12
 Total unique repos   : 64
+```
+
+`coverage missing` prints one `repository<TAB>vantage-point` pair per line for every gap, which is easy to pipe into `grep`, `sort` or `diff`. Add `--fail` to exit with status 1 when any gap exists (e.g. in cron or CI).
+
+```bash
+$ rpkispool-cli coverage missing
+krill.rg.net	blr1
+krill.rg.net	blr2
 ```
 
 ## Installation

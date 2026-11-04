@@ -4,6 +4,7 @@ Coverage commands for rpkispool archives.
 Subcommands:
   vantage-points   Level-1 summary: one row per vantage point
   repositories     Level-2 matrix:  one row per repository, columns per vantage point
+  missing          Flat list of repository/vantage-point gaps, one per line
 """
 
 import logging
@@ -16,14 +17,18 @@ from rpkispool.format import GREEN, RED, RESET, YELLOW, colour_cell, print_table
 logger = logging.getLogger(__name__)
 
 
-def cmd_vantage_points(args: Any) -> None:
+def _load(args: Any) -> FilelistCounts:
     filelist = filelist_path(args.output_dir, str(args.date), "initstate")
     if not filelist.exists():
         logger.error("Filelist not found: %s (run 'download --filelists' first)", filelist)
         sys.exit(1)
 
     logger.info("Loading %s", filelist)
-    data = FilelistCounts.from_path(filelist)
+    return FilelistCounts.from_path(filelist)
+
+
+def cmd_vantage_points(args: Any) -> None:
+    data = _load(args)
 
     vantage_points = data.vantage_points
 
@@ -59,13 +64,7 @@ def format_coverage_cell(n: int, max_n: int) -> str:
 
 
 def cmd_repositories(args: Any) -> None:
-    filelist = filelist_path(args.output_dir, str(args.date), "initstate")
-    if not filelist.exists():
-        logger.error("Filelist not found: %s (run 'download --filelists' first)", filelist)
-        sys.exit(1)
-
-    logger.info("Loading %s", filelist)
-    data = FilelistCounts.from_path(filelist)
+    data = _load(args)
 
     vantage_points = data.vantage_points
     repos = sorted(data.all_repos)
@@ -101,6 +100,17 @@ def cmd_repositories(args: Any) -> None:
     print(legend)
 
 
+def cmd_missing(args: Any) -> None:
+    data = _load(args)
+
+    gaps = [(repo, vp) for repo in sorted(data.all_repos) for vp in data.vantage_points if data.get(vp, repo) == 0]
+    for repo, vp in gaps:
+        print(f"{repo}\t{vp}")
+
+    if gaps and args.fail:
+        sys.exit(1)
+
+
 def add_parser(subparsers: Any) -> None:
     coverage = subparsers.add_parser("coverage", help="Report initstate archive coverage")
     sub = coverage.add_subparsers(dest="coverage_command")
@@ -108,6 +118,8 @@ def add_parser(subparsers: Any) -> None:
 
     sub.add_parser("vantage-points", help="Per-vantage-point object and repo counts")
     sub.add_parser("repositories", help="Per-repository coverage matrix across vantage points")
+    missing = sub.add_parser("missing", help="List repositories missing at each vantage point (repo<TAB>vantage-point)")
+    missing.add_argument("--fail", action="store_true", help="Exit with status 1 if any gap is found")
 
 
 def run(args: Any) -> None:
@@ -115,5 +127,7 @@ def run(args: Any) -> None:
         cmd_vantage_points(args)
     elif args.coverage_command == "repositories":
         cmd_repositories(args)
+    elif args.coverage_command == "missing":
+        cmd_missing(args)
     else:
         raise ValueError(f"Unknown coverage command: {args.coverage_command}")
