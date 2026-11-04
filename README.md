@@ -4,9 +4,12 @@
 
 The goal of this project is to provide easy and convenient interface to work with RPKISpool materialization files as defined in [draft-snijders-rpkispool-format](https://datatracker.ietf.org/doc/draft-snijders-rpkispool-format/).
 
-## Core assumptions
+## Core Philosophy
 
-- Minimal dependencies: We use as few python features and libraries as possible to make the tool portable and maintainbale in next 10 years
+- We prefer Python's standard library and a small, carefully selected set of external dependencies.
+- We avoid unnecessary language features, frameworks, and abstractions.
+
+**Rationale**: Keep the tool portable, simple to maintain, and reliable over a 10-year lifespan.
 
 ## Requirements 
 
