@@ -30,6 +30,8 @@ Following features are supported:
 By default `rpkispool-cli` operates on yesterday's date (change with `--date YYYYMMDD`) 
 and stores files in `work/archives` (change with `--output-dir DIR`).
 
+The date can also be set with the `RPKISPOOL_DATE` environment variable (`--date` takes precedence). The `Makefile` loads an optional `.env` file, so copy `.env.example` to `.env` to pin the date for all `make` targets.
+
 | Command                  | Documentation                      |
 | ------------------------ | ---------------------------------- |
 | `rpkispool-cli download` | [doc/download.md](doc/download.md) |

@@ -1,5 +1,8 @@
-DATE ?= 20261103
-CLI = uv run rpkispool-cli --date $(DATE)
+# optional, see .env.example
+-include .env
+export RPKISPOOL_DATE
+
+CLI = uv run rpkispool-cli
 
 .PHONY: hello test lint download verify coverage coverage-repos coverage-missing
 

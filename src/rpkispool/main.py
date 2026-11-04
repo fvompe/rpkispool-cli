@@ -66,7 +66,7 @@ def _load_modules() -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="rpkispool-cli", description="RPKISpool CLI tool")
-    parser.add_argument("--date", metavar="YYYYMMDD", type=RPKIDate.parse, default=RPKIDate.default(), help="Date to operate on (default: yesterday)")
+    parser.add_argument("--date", metavar="YYYYMMDD", type=RPKIDate.parse, default=RPKIDate.default(), help="Date to operate on (default: $RPKISPOOL_DATE, else yesterday)")
     parser.add_argument("--output-dir", default="work/archives", metavar="DIR", type=Path, help="Output directory (default: work/archives)")
     parser.add_argument("--verbose", "-v", action="count", default=1, help="Increase verbosity")
 
