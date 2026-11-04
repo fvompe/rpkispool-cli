@@ -1,7 +1,11 @@
 [project]
 name = "rpkispool-cli"
 version = "0.1.0"
-description = "RPKISpool CLI tool"
+description = "Download, verify and inspect the coverage of RPKISpool materialization files (draft-snijders-rpkispool-format)"
+authors = [
+    { name = "Fedor Vompe" },
+    { name = "Job Snijders" },
+]
 readme = "README.md"
 requires-python = ">=3.15"
 dependencies = []
