@@ -1,6 +1,6 @@
-# RPKISpool CLI
+# rpkispool-cli
 
-RPKISpool-CLI is a tiny command-line utility to work with RPKISpool materialization files.
+**rpkispool-cli** is a command-line utility to work with RPKISpool materialization files.
 
 The goal of this project is to provide easy and convenient interface to work with RPKISpool materialization files as defined in [draft-snijders-rpkispool-format](https://datatracker.ietf.org/doc/draft-snijders-rpkispool-format/).
 
@@ -12,7 +12,7 @@ The goal of this project is to provide easy and convenient interface to work wit
 
 - Python 3.15 or higher
 - astral-sh/uv (for development only)
-- tar with zstd support
+- tar with zstd support (to generate filelists)
 
 ## Features
 
@@ -24,83 +24,26 @@ Following features are supported:
 
 ## Commands
 
-By default `rpkispool-cli` will operate on yesterday's date and store downloaded files in `work/archives` directory.
+By default `rpkispool-cli` operates on yesterday's date (change with `--date YYYYMMDD`) 
+and stores files in `work/archives` (change with `--output-dir DIR`).
 
-First of all
+| Command                  | Documentation                      |
+| ------------------------ | ---------------------------------- |
+| `rpkispool-cli download` | [doc/download.md](doc/download.md) |
+| `rpkispool-cli verify`   | [doc/verify.md](doc/verify.md)     |
+| `rpkispool-cli coverage` | [doc/coverage.md](doc/coverage.md) |
 
-1) download the materialization files using `download` command.
-2) use sub-commands to work with the downloaded files (e.g. `verify`, `coverage`)
-
-```bash
-$ rpkispool-cli --help
-usage: rpkispool-cli [-h] [--date YYYYMMDD] [--output-dir DIR] [--verbose] {download} ...
-
-RPKISpool CLI tool
-
-positional arguments:
-  {download}
-    download        Download RPKI spool archives
-
-options:
-  -h, --help        show this help message and exit
-  --date YYYYMMDD   Date to operate on (default: yesterday)
-  --output-dir DIR  Output directory (default: work/archives)
-  --verbose, -v     Increase verbosity
-```
-
-### Downloading materialization files (rpkispool-cli download)
+Typical session:
 
 ```bash
-$ rpkispool-cli download --help
-usage: rpkispool-cli download [-h] [--base-url URL] [--initstate] [--rpkispool] [--filelists]
-
-options:
-  -h, --help      show this help message and exit
-  --base-url URL  Base URL for downloads (default: https://josephine.sobornost.net/rpkidata/rpkispools)
-  --initstate     Download only the initstate archive
-  --rpkispool     Download only the rpkispool archive
-  --filelists     Generate .filelist files after download
+$ rpkispool-cli --date 20261103 download
+$ rpkispool-cli --date 20261103 verify
+$ rpkispool-cli --date 20261103 coverage vantage-points
 ```
 
-Example:
+Use `rpkispool-cli --help` and `rpkispool-cli <command> --help` for all options. 
 
-```bash
-$ rpkispool-cli --output-dir download --date 20260202 download --filelists
-```
-
-Note, that generating filelists is needed to operate with other commands, e.g. `verify` and `coverage`.
-
-On commodity hardware, generating filelist for a single archive takes around 15 minutes. 
-
-```bash
-$ rpkispool-cli download --filelists
-2026-03-05 17:51:33,469 INFO: File already exists, skipping download: work/archives/20260302-initstate.tar.zst
-2026-03-05 17:51:33,470 INFO: Generating filelist for work/archives/20260302-initstate.tar.zst
-2026-03-05 17:56:26,081 INFO: Filelist generated: work/archives/20260302-initstate.tar.zst.filelist.gz
-2026-03-05 17:56:26,082 INFO: File already exists, skipping download: work/archives/20260302-rpkispool.tar.zst
-2026-03-05 17:56:26,083 INFO: Generating filelist for work/archives/20260302-rpkispool.tar.zst
-2026-03-05 18:06:23,363 INFO: Filelist generated: work/archives/20260302-rpkispool.tar.zst.filelist.gz
-```
-
-### Verifying downloads (rpkispool-cli verify)
-
-Verifies the filelists and the content of the rpkispool archive against [draft-snijders-rpkispool-format](https://datatracker.ietf.org/doc/draft-snijders-rpkispool-format/). Everything is verified by default, use `--no-initstate`, `--no-rpkispool` or `--no-content` to skip parts.
-
-```bash
-$ rpkispool-cli verify --no-content
-```
-
-See [doc/verify.md](doc/verify.md) for details.
-
-### Getting coverage (rpkispool-cli coverage)
-
-Reports which repositories each vantage point saw, based on the initstate filelist.
-
-```bash
-$ rpkispool-cli coverage vantage-points
-```
-
-Subcommands: `vantage-points`, `repositories`, `missing`. See [doc/coverage.md](doc/coverage.md) for details.
+The repository also has a `Makefile` with these as targets, see `make download`, `make verify`, `make coverage`.
 
 ## Installation
 

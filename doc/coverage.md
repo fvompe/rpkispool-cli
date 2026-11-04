@@ -2,7 +2,7 @@
 
 Shows how complete the initstate archive is: which repositories each vantage point has, and how many objects. A repository is "missing" at a vantage point if some other vantage point has objects for it but this one has none.
 
-All subcommands read the initstate filelist (`<date>-initstate.tar.zst.filelist.gz`), so run `download --filelists` first.
+All subcommands read the initstate filelist (`<date>-initstate.tar.zst.filelist.gz`), so run `download` first.
 
 ```bash
 $ rpkispool-cli coverage --help
