@@ -17,23 +17,22 @@ jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      # the lock file must be up to date
+      UV_LOCKED: "1"
     steps:
-      # pinned to a commit (v4.2.2); the token is not kept in the checkout
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      # https://github.com/actions/checkout, pinned to a commit (v7.0.1);
+      # the token is not kept in the checkout
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
 
-      # tests and linter run in a throwaway alpine container on a copy of the sources;
-      # the lock file must be up to date (UV_LOCKED)
+      # https://github.com/astral-sh/setup-uv, pinned to a commit (v10.3.3);
+      # uv downloads the Python version the project needs
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          version: "0.11.19"
+          enable-cache: true
+
       - name: Run tests and linter
-        run: |
-          docker run --rm \
-            --env UV_LOCKED=1 \
-            --volume "$PWD:/src:ro" \
-            alpine:3.24 \
-            sh -eu -c '
-              apk add --no-cache uv make
-              cp -a /src /work
-              cd /work
-              make test lint
-            '
+        run: make test lint
