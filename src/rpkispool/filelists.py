@@ -18,7 +18,7 @@ class FilelistCounts:
     counts: dict[str, dict[str, int]] = field(repr=False)
 
     @classmethod
-    def from_path(cls, path: Path) -> "FilelistCounts":
+    def from_path(cls, path: Path) -> FilelistCounts:
         raw: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         with gzip.open(path, "rt") as f:
             for line in f:

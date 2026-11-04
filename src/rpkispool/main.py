@@ -19,7 +19,7 @@ class RPKIDate:
     day: str
 
     @classmethod
-    def default(cls) -> "RPKIDate":
+    def default(cls) -> RPKIDate:
         """
         Return the default date (yesterday) as an RPKIDate instance.
         """
@@ -30,7 +30,7 @@ class RPKIDate:
         return cls.parse((date.today() - timedelta(days=1)).strftime("%Y%m%d"))
 
     @classmethod
-    def parse(cls, value: str) -> "RPKIDate":
+    def parse(cls, value: str) -> RPKIDate:
         m = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", value)
         if not m:
             raise argparse.ArgumentTypeError(f"Invalid date format '{value}' (expected YYYYMMDD)")
