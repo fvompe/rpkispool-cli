@@ -82,7 +82,7 @@ def _filelist(archive: Path) -> None:
 
     logger.info("Generating filelist for %s", archive)
 
-    with gzip.open(tmp_file, "wb") as gz:
+    with gzip.open(tmp_file, "wb", compresslevel=1) as gz:
         proc = subprocess.Popen(["tar", "-tf", archive], stdout=subprocess.PIPE)
         assert proc.stdout is not None
         for chunk in proc.stdout:
