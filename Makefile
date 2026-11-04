@@ -4,7 +4,7 @@ export RPKISPOOL_DATE
 
 CLI = uv run rpkispool-cli
 
-.PHONY: hello test fixtures lint download verify coverage coverage-repos coverage-missing
+.PHONY: hello test fixtures lint download verify coverage coverage-repos coverage-missing eventlog
 
 hello:
 	@echo "This Makefile is intentionally left blank. Please check targets in it!"
@@ -34,3 +34,6 @@ coverage-repos:
 
 coverage-missing:
 	$(CLI) coverage missing
+
+eventlog:
+	$(CLI) eventlog
