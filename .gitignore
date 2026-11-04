@@ -6,3 +6,4 @@ misc
 work
 __pycache__
 .env
+.coverage
