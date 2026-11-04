@@ -78,3 +78,8 @@ def print_table(
     print("-" * (sum(widths) + len(col_sep) * (len(widths) - 1)))
     for row_idx, row in enumerate(rows):
         print(_fmt(row, row_idx))
+
+
+def fmt_duration(seconds: float) -> str:
+    minutes, secs = divmod(int(seconds), 60)
+    return f"{minutes}m{secs:02d}s"

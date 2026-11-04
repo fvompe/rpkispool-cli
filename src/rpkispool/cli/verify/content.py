@@ -18,6 +18,7 @@ from pathlib import Path
 from rpkispool.ccr import CCR, parse_ccr
 from rpkispool.cli.verify.base import Context, VerifyResult, missing_input
 from rpkispool.filelists import filelist_path, iterate_filelist
+from rpkispool.format import fmt_duration
 from rpkispool.manifest import is_manifest, manifest_file_hashes
 
 logger = logging.getLogger(__name__)
@@ -190,19 +191,14 @@ class ContentVerifier:
             check.finish()
 
         result.summarise_failures()
-        logger.info("Content verified in %s", _fmt_duration(time.monotonic() - started))
+        logger.info("Content verified in %s", fmt_duration(time.monotonic() - started))
         return result
-
-
-def _fmt_duration(seconds: float) -> str:
-    minutes, secs = divmod(int(seconds), 60)
-    return f"{minutes}m{secs:02d}s"
 
 
 def _log_progress(started: float, ccr: int, static: int, expected_ccr: int, expected_static: int) -> None:
     elapsed = time.monotonic() - started
     if not expected_ccr:
-        logger.info("Processed %d .ccr files, %d static objects, elapsed %s", ccr, static, _fmt_duration(elapsed))
+        logger.info("Processed %d .ccr files, %d static objects, elapsed %s", ccr, static, fmt_duration(elapsed))
         return
 
     # .ccr files dominate the data volume, so they are the best progress estimate
@@ -215,8 +211,8 @@ def _log_progress(started: float, ccr: int, static: int, expected_ccr: int, expe
         done * 100,
         static,
         expected_static,
-        _fmt_duration(elapsed),
-        _fmt_duration(eta),
+        fmt_duration(elapsed),
+        fmt_duration(eta),
     )
 
 
