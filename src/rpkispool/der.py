@@ -42,3 +42,14 @@ def expect(buf: bytes, pos: int, tag: int) -> tuple[int, int]:
     if got != tag:
         raise ValueError(f"expected tag {tag:#04x} at offset {pos}, got {got:#04x}")
     return start, length
+
+
+def encode_tlv(tag: int, content: bytes) -> bytes:
+    """Encode a single-byte tag and its content as DER."""
+    length = len(content)
+    if length < 0x80:
+        header = bytes([tag, length])
+    else:
+        size = length.to_bytes((length.bit_length() + 7) // 8, "big")
+        header = bytes([tag, 0x80 | len(size)]) + size
+    return header + content
