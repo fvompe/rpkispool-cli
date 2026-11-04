@@ -13,7 +13,6 @@ The goal of this project is to provide easy and convenient interface to work wit
 - Python 3.10 or higher
 - astral-sh/uv (for development only)
 - tar with zstd support
-- curl
 
 ## Features
 
