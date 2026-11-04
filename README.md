@@ -81,6 +81,8 @@ To run tests, use
 uv run pytest
 ```
 
+The tests use a small fixture cut from real archives, see [doc/fixtures.md](doc/fixtures.md).
+
 ## Authors
 
 - Fedor Vompe
