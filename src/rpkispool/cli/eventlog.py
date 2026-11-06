@@ -26,7 +26,7 @@ from compression.zstd import ZstdError
 from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import pairwise
-from typing import Any
+from typing import Any, NamedTuple
 
 from rpkispool.ccr import (
     TAG_VAPS,
@@ -209,26 +209,46 @@ def _diff_range(old: Snapshot, new: Snapshot, lo: int, hi: int, removed: list[An
             j += 1
 
 
-def event_lines(node: str, old: Snapshot, new: Snapshot, filters: Filters | None = None) -> list[str]:
-    """
-    The log lines for the change from old to new.
+class Event(NamedTuple):
+    """One ROA or ASPA that was added or removed between two CCRs of a node."""
 
-    ROAs: all DEL lines, then all ADD lines. ASPAs: by customer AS, so that the DEL and the ADD
+    time: datetime
+    node: str
+    kind: Kind
+    old_hash: bytes
+    new_hash: bytes
+    action: str  # ADD | DEL
+    item: Any  # Vrp | Aspa
+
+
+def events(node: str, old: Snapshot, new: Snapshot, filters: Filters | None = None) -> list[Event]:
+    """
+    The events for the change from old to new.
+
+    ROAs: all DEL events, then all ADD events. ASPAs: by customer AS, so that the DEL and the ADD
     of a changed ASPA are next to each other; a change is kept whole if the old or the new ASPA
     matches the filters.
     """
     filters = filters or Filters()
     removed, added = diff(old, new, filters.restrict_to(new.kind))
 
-    events = [("DEL", item) for item in removed] + [("ADD", item) for item in added]
+    found = [("DEL", item) for item in removed] + [("ADD", item) for item in added]
     if new.kind is ASPA:
-        customers = {item.customer for _, item in events if filters.matches(item)}
-        events = sorted((event for event in events if event[1].customer in customers), key=lambda event: event[1].customer)  # stable: DEL before ADD
+        customers = {item.customer for _, item in found if filters.matches(item)}
+        found = sorted((event for event in found if event[1].customer in customers), key=lambda event: event[1].customer)  # stable: DEL before ADD
     else:
-        events = [event for event in events if filters.matches(event[1])]
+        found = [event for event in found if filters.matches(event[1])]
 
-    prefix = f"{new.produced_at:%Y%m%dT%H%M%SZ} {node} {_b64(old.state_hash)} -> {_b64(new.state_hash)} {new.kind.label}"
-    return [f"{prefix} {action} {new.kind.format(item)}" for action, item in events]
+    return [Event(new.produced_at, node, new.kind, old.state_hash, new.state_hash, action, item) for action, item in found]
+
+
+def format_event(event: Event) -> str:
+    return f"{event.time:%Y%m%dT%H%M%SZ} {event.node} {_b64(event.old_hash)} -> {_b64(event.new_hash)} {event.kind.label} {event.action} {event.kind.format(event.item)}"
+
+
+def event_lines(node: str, old: Snapshot, new: Snapshot, filters: Filters | None = None) -> list[str]:
+    """The log lines for the change from old to new."""
+    return [format_event(event) for event in events(node, old, new, filters)]
 
 
 def _b64(digest: bytes) -> str:
@@ -286,16 +306,16 @@ def _stream_events(archive: Any, filters: Filters, kinds: list[Kind]) -> None:
                     continue
                 last_time[node] = produced
 
-                lines: list[str] = []
+                found: list[Event] = []
                 for kind in kinds:
-                    lines += _kind_events(node, kind, data, produced, previous, filters, member.name)
+                    found += kind_events(node, kind, data, produced, previous, filters, member.name)
             except (ValueError, IndexError) as e:
                 logger.warning("Skipping malformed %s: %s", member.name, e)
                 continue
 
-            if lines:
-                event_count += len(lines)
-                sys.stdout.write("\n".join(lines) + "\n")
+            if found:
+                event_count += len(found)
+                sys.stdout.write("\n".join(format_event(event) for event in found) + "\n")
 
             if ccr_count % PROGRESS_EVERY == 0:
                 logger.info("Processed %d .ccr files, %d events, elapsed %s", ccr_count, event_count, fmt_duration(time.monotonic() - started))
@@ -303,14 +323,16 @@ def _stream_events(archive: Any, filters: Filters, kinds: list[Kind]) -> None:
     logger.info("Processed %d .ccr files, %d events in %s", ccr_count, event_count, fmt_duration(time.monotonic() - started))
 
 
-def _kind_events(
-    node: str, kind: Kind, data: bytes, produced: datetime, previous: dict[tuple[str, str], Snapshot], filters: Filters, name: str
-) -> list[str]:
+def kind_events(node: str, kind: Kind, data: bytes, produced: datetime, previous: dict[tuple[str, str], Snapshot], filters: Filters, name: str) -> list[Event]:
     state = payload_state(data, kind.section)
     if state is None:
         (logger.warning if kind is ROA else logger.debug)("%s has no %s state", name, kind.label)
         return []
+    return section_events(node, kind, state, produced, previous, filters)
 
+
+def section_events(node: str, kind: Kind, state: tuple[bytes, bytes], produced: datetime, previous: dict[tuple[str, str], Snapshot], filters: Filters) -> list[Event]:
+    """The events of a CCR whose payload_state is given, against the previous snapshot of the node and kind."""
     sets, state_hash = state
     old = previous.get((node, kind.name))
     if old is not None and old.state_hash == state_hash:
@@ -319,7 +341,7 @@ def _kind_events(
 
     snapshot = Snapshot.from_sets(kind, produced, state_hash, sets)
     previous[(node, kind.name)] = snapshot
-    return event_lines(node, old, snapshot, filters) if old is not None else []
+    return events(node, old, snapshot, filters) if old is not None else []
 
 
 def add_parser(subparsers: Any) -> None:
