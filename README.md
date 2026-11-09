@@ -56,6 +56,8 @@ The repository also has a `Makefile` with these as targets, see `make download`,
 
 ## Example
 
+> Note: current commands consider 1-day archive defined via `--date` flag or via `RPKISPOOL_DATE` environment variable (default: yesterday).
+
 To get a taste of current possibilities, here is an example running `eventlog` command quering special Amazon R&D prefixes used for testing:
 
 ![alt text](doc/eventlog.png)
