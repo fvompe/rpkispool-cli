@@ -56,13 +56,13 @@ The repository also has a `Makefile` with these as targets, see `make download`,
 
 ## Example
 
-To get a taste of current possibilities, here is an example running `eventlog` command quering special Amazon R&D prefixes used for testing (btw .):
+To get a taste of current possibilities, here is an example running `eventlog` command quering special Amazon R&D prefixes used for testing:
 
 ![alt text](doc/eventlog.png)
 
 `rpkispl db` command is not yet released, it allows to query the downloaded rpkispool files via SQLite database. 
 
-Example of getting of most noisy prefixes and their associated asns :
+Example getting most noisy prefixes and their associated asns :
 
 ![alt text](doc/db_event_by_prefix.png)
 
