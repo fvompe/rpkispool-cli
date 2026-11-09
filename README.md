@@ -54,6 +54,19 @@ Use `rpkispool-cli --help` and `rpkispool-cli <command> --help` for all options.
 
 The repository also has a `Makefile` with these as targets, see `make download`, `make verify`, `make coverage`.
 
+## Example
+
+To get a taste of current possibilities, here is an example running `eventlog` command quering special Amazon R&D prefixes used for testing (btw .):
+
+![alt text](doc/eventlog.png)
+
+`rpkispl db` command is not yet released, it allows to query the downloaded rpkispool files via SQLite database. 
+
+Example of getting of most noisy prefixes and their associated asns :
+
+![alt text](doc/db_event_by_prefix.png)
+
+
 ## Installation
 
 With [uv](https://docs.astral.sh/uv/) the tool installs into its own environment and `rpkispool-cli` is available on your PATH. uv fetches the required Python version if needed.
